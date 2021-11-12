@@ -67,6 +67,7 @@
             StringContent content = new StringContent(JsonConvert.SerializeObject(UserData), Encoding.UTF8, "application/json");
             using (var response = await httpClient.PostAsync("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users", content)) 
             {
+                Console.WriteLine(JsonConvert.DeserializeObject<User>(await content.ReadAsStringAsync()));
                 string apiResponse = await response.Content.ReadAsStringAsync();
                 ReceivedUser = JsonConvert.DeserializeObject<User>(apiResponse);
             }
