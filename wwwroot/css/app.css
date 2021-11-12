@@ -30,6 +30,31 @@ a, .btn-link {
     color: red;
 }
 
+.validation-errors {
+    background-color: #ff6a00;
+    padding: 8px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+li.validation-message {
+    color: #FFFFFF;
+    font-weight: 500
+}
+
+div.validation-message {
+    color: #ff6a00;
+    font-weight: 500
+}
+
+modified.valid {
+    border: solid 3px #ffd800;
+}
+
+.invalid {
+    border: solid 3px #ff6a00;
+}
+
 #blazor-error-ui {
     background: lightyellow;
     bottom: 0;

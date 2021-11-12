@@ -1,0 +1,78 @@
+﻿@page "/Create"
+
+<h1 class="bg-info" text-white>Create a reservation</h1>
+<h2 class="text-success p-2">@FormSubmitMessage</h2>
+
+<EditForm Model="UserData" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-group">
+        <label>Name</label>
+        <ValidationMessage For="@( () => UserData.Name)" />
+        <InputText class="form-control" @bind-Value="UserData.Name" />
+    </div>
+    <div class="form-group">
+        <label>Start Location</label>
+        <ValidationMessage For="@( () => UserData.City)" />
+        <InputText class="form-control" @bind-Value="UserData.City" />
+    </div>
+    <div class="form-group">
+        <label>End Location</label>
+        <ValidationMessage For="@( ()=> UserData.Email )" />
+        <InputText class="form-control" @bind-Value="UserData.Email" />
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">Click</button>
+    </div>
+
+</EditForm>
+
+<!-- If the reservation isn't null, display it in a table -->
+@if (ReceivedUser != null)
+{
+    <h3 class="text-warning p-2">Reservation</h3>
+    <table class="table table-sm table-striped table-bordered m-2">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>City</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>@ReceivedUser.Name</td>
+                <td>@ReceivedUser.City</td>
+                <td>@ReceivedUser.Email</td>
+            </tr>
+        </tbody>
+    </table>
+}
+
+
+
+@code {
+
+    public User UserData = new User();
+    User ReceivedUser;
+
+    public string FormSubmitMessage { get; set; } = "User Not Created";
+
+    public async Task HandleValidSubmit()
+    {
+        ReceivedUser = new User();
+        using ( var httpClient = new HttpClient() )
+        {
+            StringContent content = new StringContent(JsonConvert.SerializeObject(UserData), Encoding.UTF8, "application/json");
+            using (var response = await httpClient.PostAsync("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users", content)) 
+            {
+                string apiResponse = await response.Content.ReadAsStringAsync();
+                ReceivedUser = JsonConvert.DeserializeObject<User>(apiResponse);
+            }
+        }
+        FormSubmitMessage = "User Created";
+    }
+
+    public void HandleInvalidSubmit() => FormSubmitMessage = "Invalid User";
+}
