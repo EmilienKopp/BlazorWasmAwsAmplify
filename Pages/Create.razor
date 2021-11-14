@@ -65,7 +65,7 @@
         ReceivedUser = new Customer();
         using ( var httpClient = new HttpClient() )
         {
-            StringContent content = new StringContent(JsonConvert.SerializeObject(UserData), Encoding.UTF8, "application/json");
+            StringContent content = new StringContent(JsonConvert.SerializeObject(CustomerData), Encoding.UTF8, "application/json");
             using (var response = await httpClient.PostAsync("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users", content))
             {
                 Console.WriteLine(JsonConvert.DeserializeObject<Customer>(await content.ReadAsStringAsync()));
