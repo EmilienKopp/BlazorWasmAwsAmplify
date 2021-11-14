@@ -1,0 +1,50 @@
+﻿@page "/Read"
+
+<h1 class="bg-info" text-white>Customers Menu</h1>
+
+<h3 class="text-warning p-2">List Customers</h3>
+
+@if (ReceivedCustomers == null)
+{
+    <p> No Data Found </p>
+}
+else
+{
+    <table class="table table-sm table-striped table-bordered m-2">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Membership</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in ReceivedCustomers)
+            {
+                <tr>
+                    <td>@item.Name</td>
+                    <td>@item.MembershipType</td>
+                    <td>@item.Email</td>
+                </tr>
+            }
+
+        </tbody>
+    </table>
+
+}
+
+
+
+
+
+
+@code {
+
+    private List<Customer> ReceivedCustomers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ReceivedCustomers = await new HttpClient().GetFromJsonAsync<List<Customer>>("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users");
+    }
+
+}

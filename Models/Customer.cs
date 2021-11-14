@@ -7,16 +7,27 @@ using System.Threading.Tasks;
 
 namespace BlazorWasmAwsAmplify.Models
 {
-    public class User
+    public class Customer
     {
-        [Required]
-        public string Name { get; set; } = "";
-        [Required]
-        public string City { get; set; } = "";
-        [Required]
+        public string CustomerId { get; set; } = "";
+
+        public string MemberId { get; set; } = "";
+
         public string Email { get; set; } = "";
+
+        public string Name { get; set; } = "";
+
+        public string Romaji { get; set; } = "";
+
+        public string City { get; set; } = "";
+
         public string Phone { get; set; } = "";
+
         public string Address { get; set; } = "";
+
+        public string MembershipType { get; set; } = "";
+
+        public string LastVisit { get; set; } = "";
 
 
     }
