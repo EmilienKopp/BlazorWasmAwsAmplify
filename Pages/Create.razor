@@ -1,4 +1,5 @@
 ﻿@page "/Create"
+@inject NavigationManager NavManager
 
 <h1 class="bg-info" text-white>Create a Customer</h1>
 
@@ -7,11 +8,20 @@
 <EditForm Model="CustomerData" OnValidSubmit="HandleValidSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
-
     <div class="form-group">
         <label>Name</label>
         <ValidationMessage For="@( () => CustomerData.Name)" />
         <InputText class="form-control" @bind-Value="CustomerData.Name" />
+    </div>
+    <div class="form-group">
+        <label>Romaji</label>
+        <ValidationMessage For="@( () => CustomerData.Romaji)" />
+        <InputText class="form-control" @bind-Value="CustomerData.Romaji" />
+    </div>
+    <div class="form-group">
+        <label>Phone</label>
+        <ValidationMessage For="@( () => CustomerData.Phone)" />
+        <InputText class="form-control" @bind-Value="CustomerData.Phone" />
     </div>
     <div class="form-group">
         <label>MembershipType</label>
@@ -20,11 +30,21 @@
     </div>
     <div class="form-group">
         <label>Email</label>
-        <ValidationMessage For="@( ()=> CustomerData.Email )" />
+        <ValidationMessage For="@( () => CustomerData.Email )" />
         <InputText class="form-control" @bind-Value="CustomerData.Email" />
     </div>
     <div class="form-group">
-        <button type="submit" class="btn btn-primary">Click</button>
+        <label>City</label>
+        <ValidationMessage For="@( () => CustomerData.City )" />
+        <InputText class="form-control" @bind-Value="CustomerData.City" />
+    </div>
+    <div class="form-group">
+        <label>Address</label>
+        <ValidationMessage For="@( () => CustomerData.Address )" />
+        <InputText class="form-control" @bind-Value="CustomerData.Address" />
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">保存して一覧に戻る</button>
     </div>
 
 </EditForm>
@@ -63,7 +83,7 @@
     public async Task HandleValidSubmit()
     {
         ReceivedUser = new Customer();
-        using ( var httpClient = new HttpClient() )
+        using (var httpClient = new HttpClient())
         {
             StringContent content = new StringContent(JsonConvert.SerializeObject(CustomerData), Encoding.UTF8, "application/json");
             using (var response = await httpClient.PostAsync("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users", content))
@@ -74,6 +94,7 @@
             }
         }
         FormSubmitMessage = "Customer Created";
+        NavManager.NavigateTo("/Read");
     }
 
     public void HandleInvalidSubmit() => FormSubmitMessage = "Invalid Customer";

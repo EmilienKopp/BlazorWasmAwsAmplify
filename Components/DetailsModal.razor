@@ -1,0 +1,73 @@
+﻿@inject Services.AppData AppData
+@inject NavigationManager NavManager
+
+<div class="modal fade show" id="detailsModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">@CustomerData.Name お客様情報 </h4>
+                <button type="button" class="close" @onclick="@Cancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-dark table-striped table-bordered m-2">
+                    <thead>
+                    <th>氏名</th>
+                    <th>Romaji</th>
+                    <th>会員</th>
+                    </thead>
+                    <tbody>
+                        <tr><td>@CustomerData.Name</td><td>@CustomerData.Romaji</td><td>@CustomerData.MembershipType</td></tr>
+                    </tbody>
+                </table>
+
+                <table class="table table-dark table-striped table-bordered m-2">
+                    <thead>
+                    <th>住所</th>
+                    <th>都市</th>
+                    </thead>
+                    <tbody>
+                        <tr><td>@CustomerData.Address</td><td>@CustomerData.City</td></tr>
+                    </tbody>
+                </table>
+                <table class="table table-dark table-striped table-bordered m-2">
+                    <thead>
+                    <th>電話番号</th>
+                    <th>Email</th>
+                    </thead>
+                    <tbody>
+                        <tr><td>@CustomerData.Phone</td><td>@CustomerData.Email</td></tr>
+                    </tbody>
+                </table>
+                <p>最終更新:@CustomerData.LastUpdated</p>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" @onclick="@( () => OpenUpdate(CustomerData.CustomerId) )">編集する</button>
+                <button type="button" class="btn btn-primary" @onclick=@Ok>閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code{
+    [Parameter] public Customer CustomerData { get; set; } = new Customer();
+    [Parameter] public EventCallback<bool> OnClose { get; set; }
+
+    private Task Cancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task Ok()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    private void OpenUpdate(string id)
+    {
+        AppData.CustomerId = id;
+        NavManager.NavigateTo("/Update");
+    }
+
+
+}

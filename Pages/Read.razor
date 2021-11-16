@@ -36,8 +36,9 @@ else
                     <td>@item.Email</td>
                     <td>@item.LastUpdated</td>
                     <td>
-                        <button data-bs-toggle="modal" data-bs-target="#confirmModal" @onclick="@(()=> OpenDialog(item.CustomerId,item.Name))"><i class="oi oi-trash"></i></button>
-                        <button @onclick="@( () => OpenDetails(item.CustomerId) )"><i class="oi oi-pencil"></i></button>
+                        <button data-bs-toggle="modal" data-bs-target="#confirmModal" @onclick="@(()=> OpenConfirmDialog(item.CustomerId,item.Name))"><i class="oi oi-trash"></i></button>
+                        <button @onclick="@( () => OpenUpdate(item.CustomerId) )"><i class="oi oi-pencil"></i></button>
+                        <button @onclick="@( () => OpenDetails(item.CustomerId) )"><i class="oi oi-magnifying-glass"></i></button>
                     </td>
                 </tr>
             }
@@ -48,7 +49,7 @@ else
     <!-- <ConfirmModal ConfirmMessage="削除します。よろしいですか。" ActionToConfirm="@( ()=> ProceedDelete() )"/>  -->
 
 }
-@if(DialogIsOpen)
+@if(ConfirmDialogIsOpen)
 {
     <Dialog Caption="削除する"
             Message="@message"
@@ -56,6 +57,14 @@ else
             Type="Dialog.Category.DeleteNot">
 
     </Dialog>
+}
+
+@if(DetailsModalIsOpen)
+{
+<DetailsModal CustomerData="@CustomerData"
+              OnClose="@OnModalClose">
+
+</DetailsModal>
 }
 
 
@@ -69,7 +78,9 @@ else
     private List<Customer> ReceivedCustomers;
     private string idCustomer;
     private string message;
-    private bool DialogIsOpen = false;
+    private bool ConfirmDialogIsOpen = false;
+    private bool DetailsModalIsOpen = false;
+    private Customer CustomerData;
 
     protected override async Task OnInitializedAsync()
     {
@@ -79,9 +90,9 @@ else
         SortTable(LastUpdatedColumnProperty);
     }
 
-    private void OpenDialog(string id, string name)
+    private void OpenConfirmDialog(string id, string name)
     {
-        DialogIsOpen = true;
+        ConfirmDialogIsOpen = true;
         idCustomer = id;
         message = $"{name} を削除します。よろしいですか？";
     }
@@ -92,7 +103,18 @@ else
         {
             await ProceedDelete(idCustomer);
         }
-        DialogIsOpen = false;
+        ConfirmDialogIsOpen = false;
+    }
+
+    private async Task OnModalClose(bool isOk)
+    {
+        DetailsModalIsOpen = false;
+    }
+
+    private async Task OpenDetails(string id)
+    {
+        DetailsModalIsOpen = true;
+        CustomerData = ReceivedCustomers.Find(c => c.CustomerId == id);
     }
 
 }
@@ -132,11 +154,13 @@ else
         }
     }
 
-    private void OpenDetails(string id)
+    private void OpenUpdate(string id)
     {
         AppData.CustomerId = id;
-        NavManager.NavigateTo("/Details");
+        NavManager.NavigateTo("/Update");
     }
+
+
 
     private void ConfirmDelete(string id)
     {
@@ -154,7 +178,7 @@ else
             RequestUri = new Uri("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users"),
             Content = new StringContent(JsonConvert.SerializeObject(content), Encoding.UTF8, "application/json")
         };
-        
+
         await new HttpClient().SendAsync(request);
     }
 
