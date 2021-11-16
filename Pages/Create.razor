@@ -14,7 +14,7 @@
         <InputText class="form-control" @bind-Value="CustomerData.Name" />
     </div>
     <div class="form-group">
-        <label>City</label>
+        <label>MembershipType</label>
         <ValidationMessage For="@( () => CustomerData.MembershipType)" />
         <InputText class="form-control" @bind-Value="CustomerData.MembershipType" />
     </div>
@@ -32,7 +32,7 @@
 <!-- If the reservation isn't null, display it in a table -->
 @if (ReceivedUser != null)
 {
-    <h3 class="text-warning p-2">Reservation</h3>
+    <h3 class="text-warning p-2">更新した情報</h3>
     <table class="table table-sm table-striped table-bordered m-2">
         <thead>
             <tr>

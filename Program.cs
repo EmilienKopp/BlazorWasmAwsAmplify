@@ -19,6 +19,7 @@ namespace BlazorWasmAwsAmplify
 
             
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            builder.Services.AddSingleton(sp => new Services.AppData());
 
             await builder.Build().RunAsync();
         }

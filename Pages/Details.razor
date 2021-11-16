@@ -1,0 +1,89 @@
+﻿@page "/Details"
+@inject Services.AppData AppData
+@inject NavigationManager NavManager
+
+<h3 href="#Top">Customer Details</h3>
+
+<EditForm Model="CustomerData" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="form-group">
+        <label>Name</label>
+        <ValidationMessage For="@( () => CustomerData.Name)" />
+        <InputText class="form-control" @bind-Value="CustomerData.Name" />
+    </div>
+    <div class="form-group">
+        <label>Romaji</label>
+        <ValidationMessage For="@( () => CustomerData.Romaji)" />
+        <InputText class="form-control" @bind-Value="CustomerData.Romaji" />
+    </div>
+    <div class="form-group">
+        <label>Phone</label>
+        <ValidationMessage For="@( () => CustomerData.Phone)" />
+        <InputText class="form-control" @bind-Value="CustomerData.Phone" />
+    </div>
+    <div class="form-group">
+        <label>MembershipType</label>
+        <ValidationMessage For="@( () => CustomerData.MembershipType)" />
+        <InputText class="form-control" @bind-Value="CustomerData.MembershipType" />
+    </div>
+    <div class="form-group">
+        <label>Email</label>
+        <ValidationMessage For="@( () => CustomerData.Email )" />
+        <InputText class="form-control" @bind-Value="CustomerData.Email" />
+    </div>
+    <div class="form-group">
+        <label>City</label>
+        <ValidationMessage For="@( () => CustomerData.City )" />
+        <InputText class="form-control" @bind-Value="CustomerData.City" />
+    </div>
+    <div class="form-group">
+        <label>Address</label>
+        <ValidationMessage For="@( () => CustomerData.Address )" />
+        <InputText class="form-control" @bind-Value="CustomerData.Address" />
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">Click</button>
+    </div>
+
+</EditForm>
+
+<h2 class="text-success p-2">@FormSubmitMessage</h2>
+
+
+
+@code {
+    public List<Customer> CustomerList;
+    public Customer CustomerData = new Customer();
+    public string FormSubmitMessage { get; set; } = "Customer not yet updated";
+
+    protected override async Task OnInitializedAsync()
+    {
+        CustomerList = await new HttpClient().GetFromJsonAsync<List<Customer>>("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users?CustomerId=" + AppData.CustomerId);
+        CustomerData = CustomerList.Find(c => c.CustomerId == AppData.CustomerId);
+    }
+
+    public async Task HandleValidSubmit()
+    {
+        using (var httpClient = new HttpClient())
+        {
+            CustomerList.Clear();
+            CustomerList.Add(CustomerData);
+            var customerArray = CustomerList.ToArray();
+            StringContent content = new StringContent(JsonConvert.SerializeObject(customerArray), Encoding.UTF8, "application/json");
+            using (var response = await httpClient.PutAsync("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users", content))
+            {
+                string apiResponse = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode) NavManager.NavigateTo("/Read");
+                else
+                {
+                    NavManager.NavigateTo("#Top");
+                    FormSubmitMessage = "Something went wrong";
+                }
+            }
+
+        }
+
+
+    }
+}

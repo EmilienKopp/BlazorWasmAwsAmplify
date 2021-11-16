@@ -1,8 +1,11 @@
 ﻿@page "/Read"
+@inject NavigationManager NavManager
+@inject Services.AppData AppData
 
 <h1 class="bg-info" text-white>Customers Menu</h1>
 
 <h3 class="text-warning p-2">List Customers</h3>
+
 
 @if (ReceivedCustomers == null)
 {
@@ -10,41 +13,149 @@
 }
 else
 {
-    <table class="table table-sm table-striped table-bordered m-2">
+    <table class="table table-dark table-striped table-bordered m-2">
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Membership</th>
-                <th>Email</th>
+                <th class="sort-link">#</th>
+                <th class="sort-link" @onclick="@( () => SortTable(NameColumnProperty) )">氏名</th>
+                <th class="sort-link" @onclick="@( () => SortTable(RomajiColumnProperty) )">Romaji</th>
+                <th class="sort-link" @onclick="@( () => SortTable(MembershipColumnProperty) )">会員タイプ</th>
+                <th class="sort-link" @onclick="@( () => SortTable(EmailColumnProperty) )">Email</th>
+                <th class="sort-link" @onclick="@( () => SortTable(LastUpdatedColumnProperty) )">更新</th>
+                <th class="sort-link">Actions</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var item in ReceivedCustomers)
             {
                 <tr>
+                    <td>@(cpt++)</td>
                     <td>@item.Name</td>
+                    <td>@item.Romaji</td>
                     <td>@item.MembershipType</td>
                     <td>@item.Email</td>
+                    <td>@item.LastUpdated</td>
+                    <td>
+                        <button data-bs-toggle="modal" data-bs-target="#confirmModal" @onclick="@(()=> OpenDialog(item.CustomerId,item.Name))"><i class="oi oi-trash"></i></button>
+                        <button @onclick="@( () => OpenDetails(item.CustomerId) )"><i class="oi oi-pencil"></i></button>
+                    </td>
                 </tr>
             }
 
         </tbody>
     </table>
 
+    <!-- <ConfirmModal ConfirmMessage="削除します。よろしいですか。" ActionToConfirm="@( ()=> ProceedDelete() )"/>  -->
+
+}
+@if(DialogIsOpen)
+{
+    <Dialog Caption="削除する"
+            Message="@message"
+            OnClose="@OnDialogClose"
+            Type="Dialog.Category.DeleteNot">
+
+    </Dialog>
 }
 
 
 
 
 
-
 @code {
+    //TODO Dynamic Table Sorting
+    private int cpt = 1;
 
     private List<Customer> ReceivedCustomers;
+    private string idCustomer;
+    private string message;
+    private bool DialogIsOpen = false;
 
     protected override async Task OnInitializedAsync()
     {
         ReceivedCustomers = await new HttpClient().GetFromJsonAsync<List<Customer>>("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users");
+        CurrentSortedColumn = LastUpdatedColumnProperty;
+        IsSortedAscending = true;
+        SortTable(LastUpdatedColumnProperty);
+    }
+
+    private void OpenDialog(string id, string name)
+    {
+        DialogIsOpen = true;
+        idCustomer = id;
+        message = $"{name} を削除します。よろしいですか？";
+    }
+
+    private async Task OnDialogClose (bool isOk)
+    {
+        if(isOk)
+        {
+            await ProceedDelete(idCustomer);
+        }
+        DialogIsOpen = false;
+    }
+
+}
+
+@functions{
+    private bool IsSortedAscending;
+    private string CurrentSortedColumn;
+    private string NameColumnProperty = "Name";
+    private string MembershipColumnProperty = "MembershipType";
+    private string EmailColumnProperty = "Email";
+    private string RomajiColumnProperty = "Romaji";
+    private string LastUpdatedColumnProperty = "LastUpdated";
+
+    private void SortTable(string columnName)
+    {
+        cpt = 1;
+        if (columnName != CurrentSortedColumn)
+        {
+            ReceivedCustomers = ReceivedCustomers.OrderBy(x => x.GetType().GetProperty(columnName).GetValue(x, null)).ToList();
+            CurrentSortedColumn = columnName;
+            IsSortedAscending = true;
+        }
+        else
+        {
+            if (IsSortedAscending)
+            {
+                ReceivedCustomers = ReceivedCustomers.OrderByDescending(x => x.GetType().GetProperty(columnName).GetValue(x, null)).ToList();
+                CurrentSortedColumn = columnName;
+                IsSortedAscending = false;
+            }
+            else
+            {
+                ReceivedCustomers = ReceivedCustomers.OrderBy(x => x.GetType().GetProperty(columnName).GetValue(x, null)).ToList();
+                CurrentSortedColumn = columnName;
+                IsSortedAscending = true;
+            }
+        }
+    }
+
+    private void OpenDetails(string id)
+    {
+        AppData.CustomerId = id;
+        NavManager.NavigateTo("/Details");
+    }
+
+    private void ConfirmDelete(string id)
+    {
+        AppData.CustomerId = id;
+    }
+
+    private async Task ProceedDelete(string id)
+    {
+        List<Customer> content = new List<Customer>();
+        content.Add(ReceivedCustomers.Find(c => c.CustomerId == id));
+
+        var request = new HttpRequestMessage
+        {
+            Method = HttpMethod.Delete,
+            RequestUri = new Uri("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users"),
+            Content = new StringContent(JsonConvert.SerializeObject(content), Encoding.UTF8, "application/json")
+        };
+        
+        await new HttpClient().SendAsync(request);
     }
 
 }

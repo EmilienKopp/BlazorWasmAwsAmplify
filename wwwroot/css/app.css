@@ -55,6 +55,12 @@ modified.valid {
     border: solid 3px #ff6a00;
 }
 
+.sort-link {
+    cursor: pointer;
+    color:white;
+    text-decoration:underline;
+}
+
 #blazor-error-ui {
     background: lightyellow;
     bottom: 0;

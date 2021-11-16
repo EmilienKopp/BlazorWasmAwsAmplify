@@ -29,6 +29,6 @@ namespace BlazorWasmAwsAmplify.Models
 
         public string LastVisit { get; set; } = "";
 
-
+        public string LastUpdated { get; set; } = "";
     }
 }
