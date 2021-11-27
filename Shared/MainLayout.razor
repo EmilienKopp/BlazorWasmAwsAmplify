@@ -1,4 +1,7 @@
 @inherits LayoutComponentBase
+@inject Services.NotificationService NS
+@using Microsoft.AspNetCore.SignalR.Client;
+
 
 <div class="page">
     <div class="sidebar">
@@ -13,7 +16,116 @@
         <div class="content px-4">
 
             <p>This is a BLAZOR WebAssembly page hosted on AWS Amplify, sending API calls to an API Gateway to invoke Lambda Functions and do CRUD operations on a DynamoDB.</p>
+            <p>WEBSOCKET CONNECTION IS [@webSocket.State]</p>
+
+            @if (!isConnected)
+            {
+                <button type="button" class="btn btn-dark" @onclick="ConnectToWebSocket">CONNECT</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-dark" @onclick="Dispose">DISCONNECT</button>
+            }
+            <button type="button" class="btn btn-dark" @onclick="SendToWS">Send Test</button>
+            @foreach (var notif in notifications)
+            {<div class="row"><h5 class="alert-success">@notif</h5></div>}
+
+
             @Body
         </div>
+        
+
     </div>
 </div>
+
+@code{
+    /*public async Task EstablishWSConnection()
+    {
+        await NS.ConnectToServer("wss://ez21s778d4.execute-api.ap-northeast-1.amazonaws.com/Test");
+        NS._connection.On<string>("notification", m => { NS.Notifications.Add(m); StateHasChanged(); });
+
+    }*/
+
+    string url = "wss://ez21s778d4.execute-api.ap-northeast-1.amazonaws.com/Test";
+    string connectionStatus = "Closed";
+    bool isConnected = false;
+    HubConnection _connection = null;
+    List<string> notifications = new List<string>();
+    CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    ClientWebSocket webSocket = new ClientWebSocket();
+
+    /*
+    private async Task ConnectToServer()
+    {
+        _connection = new HubConnectionBuilder().WithUrl(url).Build();
+
+        await _connection.StartAsync();
+
+        connectionStatus = "Connected";
+        isConnected = true;
+
+        //reconnect automatically in the Even connection gets closed
+        _connection.Closed += async (s) =>
+        {
+            isConnected = false;
+            connectionStatus = "Disconnected";
+            await _connection.StartAsync();
+            isConnected = true;
+        };
+
+        _connection.On<string>("notification", m =>
+        {
+
+            notifications.Add(m);
+            StateHasChanged();
+        });
+
+    }*/
+
+    private async Task ConnectToWebSocket()
+    {
+        await webSocket.ConnectAsync(new Uri(url), cancellationTokenSource.Token);
+        isConnected = true;
+        _ = ReceiveLoop();
+    }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        //await EstablishWSConnection();
+
+        //await ConnectToServer();
+
+        await ConnectToWebSocket();
+
+    }
+
+    public async Task ReceiveLoop()
+    {
+        var buffer = new ArraySegment<byte>(new byte[1024]);
+        while (! cancellationTokenSource.IsCancellationRequested)
+        {
+            var received = await webSocket.ReceiveAsync(buffer, cancellationTokenSource.Token);
+            string receivedAsText = Encoding.UTF8.GetString(buffer.Array, 0, received.Count);
+            notifications.Add(receivedAsText);
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        cancellationTokenSource.Cancel();
+        isConnected = false;
+        _ = webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disconnected", CancellationToken.None);
+    }
+
+    public async Task SendToWS()
+    {
+        var buffer = new byte[1024 * 4];
+        buffer = Encoding.UTF8.GetBytes("TEST NOTIFICATION");
+        await webSocket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
+       
+    }
+
+}

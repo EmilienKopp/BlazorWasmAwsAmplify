@@ -92,8 +92,10 @@
                 string apiResponse = await response.Content.ReadAsStringAsync();
                 ReceivedUser = JsonConvert.DeserializeObject<Customer>(apiResponse);
             }
+            await httpClient.PostAsync("http://localhost:38577/api/notifications?title=" + $"Created Customer {ReceivedUser.Name}", null);
         }
         FormSubmitMessage = "Customer Created";
+
         NavManager.NavigateTo("/Read");
     }
 

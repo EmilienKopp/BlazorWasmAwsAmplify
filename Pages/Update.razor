@@ -4,6 +4,8 @@
 
 <h3 href="#Top">Customer Details</h3>
 
+<h2 class="text-success p-2">@FormSubmitMessage</h2>
+
 <EditForm Model="CustomerData" OnValidSubmit="HandleValidSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
@@ -48,8 +50,6 @@
 
 </EditForm>
 
-<h2 class="text-success p-2">@FormSubmitMessage</h2>
-
 
 
 @code {
@@ -74,7 +74,12 @@
             using (var response = await httpClient.PutAsync("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users", content))
             {
                 string apiResponse = await response.Content.ReadAsStringAsync();
-                if (response.IsSuccessStatusCode) NavManager.NavigateTo("/Read");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    await httpClient.PostAsync("http://localhost:38577/api/notifications?title=" + $"Updated Customer {CustomerData.Name}", null);
+                    NavManager.NavigateTo("/Read");
+                }
                 else
                 {
                     NavManager.NavigateTo("#Top");

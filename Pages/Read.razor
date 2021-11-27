@@ -28,6 +28,7 @@ else
         <tbody>
             @foreach (var item in ReceivedCustomers)
             {
+                @if (cpt > ReceivedCustomers.Count) cpt = 1;
                 <tr>
                     <td>@(cpt++)</td>
                     <td>@item.Name</td>
@@ -130,7 +131,7 @@ else
 
     private void SortTable(string columnName)
     {
-        cpt = 1;
+
         if (columnName != CurrentSortedColumn)
         {
             ReceivedCustomers = ReceivedCustomers.OrderBy(x => x.GetType().GetProperty(columnName).GetValue(x, null)).ToList();
@@ -170,7 +171,8 @@ else
     private async Task ProceedDelete(string id)
     {
         List<Customer> content = new List<Customer>();
-        content.Add(ReceivedCustomers.Find(c => c.CustomerId == id));
+        Customer customer = ReceivedCustomers.Find(c => c.CustomerId == id);
+        content.Add(customer);
 
         var request = new HttpRequestMessage
         {
@@ -178,8 +180,13 @@ else
             RequestUri = new Uri("https://lw0051grod.execute-api.ap-northeast-1.amazonaws.com/prod/users"),
             Content = new StringContent(JsonConvert.SerializeObject(content), Encoding.UTF8, "application/json")
         };
+        HttpClient client = new HttpClient();
 
-        await new HttpClient().SendAsync(request);
+        await client.SendAsync(request);
+
+        await client.PostAsync("http://localhost:38577/api/notifications?title=" + $"Deleted Customer {customer.Name}", null);
+
+        StateHasChanged();
     }
 
 }
