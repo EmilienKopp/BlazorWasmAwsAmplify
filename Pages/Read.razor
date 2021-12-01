@@ -1,6 +1,7 @@
 ﻿@page "/Read"
 @inject NavigationManager NavManager
 @inject Services.AppData AppData
+@inject Services.NotificationService NS
 
 <h1 class="bg-info" text-white>Customers Menu</h1>
 
@@ -50,22 +51,21 @@ else
     <!-- <ConfirmModal ConfirmMessage="削除します。よろしいですか。" ActionToConfirm="@( ()=> ProceedDelete() )"/>  -->
 
 }
-@if(ConfirmDialogIsOpen)
+@if (ConfirmDialogIsOpen)
 {
     <Dialog Caption="削除する"
             Message="@message"
             OnClose="@OnDialogClose"
             Type="Dialog.Category.DeleteNot">
-
     </Dialog>
 }
 
-@if(DetailsModalIsOpen)
+@if (DetailsModalIsOpen)
 {
-<DetailsModal CustomerData="@CustomerData"
-              OnClose="@OnModalClose">
+    <DetailsModal CustomerData="@CustomerData"
+                  OnClose="@OnModalClose">
 
-</DetailsModal>
+    </DetailsModal>
 }
 
 
@@ -98,9 +98,9 @@ else
         message = $"{name} を削除します。よろしいですか？";
     }
 
-    private async Task OnDialogClose (bool isOk)
+    private async Task OnDialogClose(bool isOk)
     {
-        if(isOk)
+        if (isOk)
         {
             await ProceedDelete(idCustomer);
         }
@@ -184,9 +184,10 @@ else
 
         await client.SendAsync(request);
 
-        await client.PostAsync("http://localhost:38577/api/notifications?title=" + $"Deleted Customer {customer.Name}", null);
+        await NS.Broadcast($"CUSTOMER INFO: {customer.Name} が削除されました。");
 
         StateHasChanged();
+        NavManager.NavigateTo("/Read");
     }
 
 }

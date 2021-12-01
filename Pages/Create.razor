@@ -1,5 +1,6 @@
 ﻿@page "/Create"
 @inject NavigationManager NavManager
+@inject Services.NotificationService NS
 
 <h1 class="bg-info" text-white>Create a Customer</h1>
 
@@ -92,9 +93,11 @@
                 string apiResponse = await response.Content.ReadAsStringAsync();
                 ReceivedUser = JsonConvert.DeserializeObject<Customer>(apiResponse);
             }
-            await httpClient.PostAsync("http://localhost:38577/api/notifications?title=" + $"Created Customer {ReceivedUser.Name}", null);
+
         }
         FormSubmitMessage = "Customer Created";
+
+        await NS.Broadcast($"CUSTOMER INFO: {ReceivedUser.Name} が追加されました。");
 
         NavManager.NavigateTo("/Read");
     }

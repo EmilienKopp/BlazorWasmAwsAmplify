@@ -1,114 +1,105 @@
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @inject Services.NotificationService NS
-@using Microsoft.AspNetCore.SignalR.Client;
+
 
 
 <div class="page">
     <div class="sidebar">
+        <p style="color:white;">WEBSOCKET CONNECTION IS [@NS.Socket.State]</p>
         <NavMenu />
+
+
+        @if (!isConnected)
+        {
+            <button type="button" class="btn btn-dark" @onclick="ConnectToWebSocket">CONNECT</button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-dark" @onclick="Dispose">DISCONNECT</button>
+        }
+        <button type="button" class="btn btn-primary" @onclick="SendToWS">Send Test</button>
+        <button type="button" class="btn btn-primary" @onclick="TestGetHTTPRequest">Test GET</button>
+        <button type="button" class="btn btn-primary" @onclick="TestPostHTTPRequest">Test POST</button>
+        <button type="button" class="btn btn-success" @onclick="@( () => ToggleNotifications(null) )">全通知@(allNotifDisplayed ? "OFF" : "ON")</button>
+        <button type="button" class="btn btn-warning" @onclick="@( () => ToggleNotifications(NotificationType.Order) )">注文通知@(orderNotifDisplayed ? "OFF" : "ON")</button>
+        <button type="button" class="btn btn-warning" @onclick="@( () => ToggleNotifications(NotificationType.CustomerControl) )">更新通知@(customerNotifDisplayed ? "OFF" : "ON")</button>
+        <button type="button" class="btn btn-danger" @onclick="ClearNotifications">通知を削除</button>
+        <p style="color:white;"> OrderHidden[@orderNotifHiddenCount] </p>
+        <p style="color:white;"> CustomerUpdateHidden[@customerNotifHiddenCount] </p>
+        <p style="color:white;"> TOTAL HIDDEN [@hiddenCount] </p>
     </div>
 
     <div class="main">
-        <div class="top-row px-4">
-            <a href="http://blazor.net" target="_blank" class="ml-md-auto">About</a>
+        <div class="top-row px-4" style="">
+
         </div>
 
         <div class="content px-4">
 
-            <p>This is a BLAZOR WebAssembly page hosted on AWS Amplify, sending API calls to an API Gateway to invoke Lambda Functions and do CRUD operations on a DynamoDB.</p>
-            <p>WEBSOCKET CONNECTION IS [@webSocket.State]</p>
-
-            @if (!isConnected)
-            {
-                <button type="button" class="btn btn-dark" @onclick="ConnectToWebSocket">CONNECT</button>
-            }
-            else
-            {
-                <button type="button" class="btn btn-dark" @onclick="Dispose">DISCONNECT</button>
-            }
-            <button type="button" class="btn btn-dark" @onclick="SendToWS">Send Test</button>
-            @foreach (var notif in notifications)
-            {<div class="row"><h5 class="alert-success">@notif</h5></div>}
-
-
             @Body
+
+           
+        </div>
+        <div style="background-color:white; position:sticky; z-index:1; bottom:0;display:@(allNotifDisplayed? "block" : "none")">
+            @if (NS.Notifications != null)
+            {
+                foreach (var notif in NS.Notifications)
+                {
+                    <div class="row" style="display:@(notif.Displayed? "block":"none")">
+                        <h5 class="alert-success">
+                            @notif.Date  
+                            <button class="btn" @onclick="@( () => HideItem(notif) )">非表示</button>
+                        </h5>
+                        <p>@notif.Content</p>
+                        
+                    </div>
+                }
+            }
         </div>
         
+
 
     </div>
 </div>
 
-@code{
-    /*public async Task EstablishWSConnection()
-    {
-        await NS.ConnectToServer("wss://ez21s778d4.execute-api.ap-northeast-1.amazonaws.com/Test");
-        NS._connection.On<string>("notification", m => { NS.Notifications.Add(m); StateHasChanged(); });
 
-    }*/
+
+@code{
 
     string url = "wss://ez21s778d4.execute-api.ap-northeast-1.amazonaws.com/Test";
-    string connectionStatus = "Closed";
+
     bool isConnected = false;
-    HubConnection _connection = null;
+    bool allNotifDisplayed = true;
+    bool orderNotifDisplayed = true;
+    bool customerNotifDisplayed = true;
+
+    int hiddenCount = 0;
+    int orderNotifHiddenCount = 0;
+    int customerNotifHiddenCount = 0;
+
     List<string> notifications = new List<string>();
     CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
     ClientWebSocket webSocket = new ClientWebSocket();
 
-    /*
-    private async Task ConnectToServer()
-    {
-        _connection = new HubConnectionBuilder().WithUrl(url).Build();
-
-        await _connection.StartAsync();
-
-        connectionStatus = "Connected";
-        isConnected = true;
-
-        //reconnect automatically in the Even connection gets closed
-        _connection.Closed += async (s) =>
-        {
-            isConnected = false;
-            connectionStatus = "Disconnected";
-            await _connection.StartAsync();
-            isConnected = true;
-        };
-
-        _connection.On<string>("notification", m =>
-        {
-
-            notifications.Add(m);
-            StateHasChanged();
-        });
-
-    }*/
 
     private async Task ConnectToWebSocket()
     {
-        await webSocket.ConnectAsync(new Uri(url), cancellationTokenSource.Token);
-        isConnected = true;
-        _ = ReceiveLoop();
+        await NS.Connect(url);
+        isConnected = NS.IsConnected;
     }
-
 
 
     protected override async Task OnInitializedAsync()
     {
-        //await EstablishWSConnection();
-
-        //await ConnectToServer();
-
         await ConnectToWebSocket();
-
+        _ = ReceiveLoop();
     }
 
     public async Task ReceiveLoop()
     {
-        var buffer = new ArraySegment<byte>(new byte[1024]);
-        while (! cancellationTokenSource.IsCancellationRequested)
+        while (!NS.CancellationSource.IsCancellationRequested)
         {
-            var received = await webSocket.ReceiveAsync(buffer, cancellationTokenSource.Token);
-            string receivedAsText = Encoding.UTF8.GetString(buffer.Array, 0, received.Count);
-            notifications.Add(receivedAsText);
+            await NS.Receive();
             StateHasChanged();
         }
     }
@@ -117,15 +108,231 @@
     {
         cancellationTokenSource.Cancel();
         isConnected = false;
-        _ = webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disconnected", CancellationToken.None);
+        _ = NS.Disconnect();
     }
 
     public async Task SendToWS()
     {
-        var buffer = new byte[1024 * 4];
-        buffer = Encoding.UTF8.GetBytes("TEST NOTIFICATION");
-        await webSocket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
-       
+        await NS.Broadcast("TEST");
     }
 
-}
+    public async Task TestGetHTTPRequest()
+    {
+        await new HttpClient().GetAsync("https://fwkd27imof.execute-api.ap-northeast-1.amazonaws.com/Test?customerid=856");
+    }
+
+    public async Task TestPostHTTPRequest()
+    {
+        await new HttpClient().PostAsync("https://fwkd27imof.execute-api.ap-northeast-1.amazonaws.com/Test?customerid=856",null);
+    }
+
+    public void ClearNotifications()
+    {
+        NS.Notifications.Clear();
+        hiddenCount = orderNotifHiddenCount = customerNotifHiddenCount = 0;
+    }
+
+    public void ToggleNotifications(NotificationType? notificationType)
+    {
+        int totalCpt = 0;
+        int orderCpt = 0;
+        int customerCpt = 0;
+
+        //TOGGLE ALL
+        if (notificationType == null)
+        {
+
+            if (hiddenCount != NS.Notifications.Count)
+            {
+                //Hide all if at least one was still displayed
+                foreach (Notification N in NS.Notifications)
+                {
+                    if (N.Displayed == true)
+                    {
+                        N.Displayed = false;
+
+                        //Update counter with the number NEWLY set to false
+                        totalCpt++;
+
+                        switch (N.Type)
+                        {
+                            case NotificationType.Order:
+                                orderCpt++;
+                                break;
+                            case NotificationType.CustomerControl:
+                                customerCpt++;
+                                break;
+                        }//end switch
+                    }//endif
+                }//end foreach
+
+            }//endif
+            else
+            {
+                //Set all to displayed if all were hidden
+                allNotifDisplayed = orderNotifDisplayed = customerNotifDisplayed = true;
+                hiddenCount = orderNotifHiddenCount = customerNotifHiddenCount = 0;
+
+                foreach (Notification N in NS.Notifications)
+                {
+                    N.Displayed = true;
+                }
+            }
+            hiddenCount += totalCpt;
+            orderNotifHiddenCount += orderCpt;
+            customerNotifHiddenCount += customerCpt;
+        }
+        else if (notificationType == NotificationType.Order)
+        {
+            var subList = NS.Notifications.FindAll(n => n.Type == NotificationType.Order);
+
+            //Display all ORDER notifications if they were all hidden
+            if (orderNotifHiddenCount == subList.Count)
+            {
+                orderNotifDisplayed = true;
+                orderNotifHiddenCount = 0;
+                foreach (Notification N in subList)
+                {
+                    N.Displayed = true;
+                }
+                hiddenCount -= subList.Count;
+            }
+            else
+            {
+                //Hide ORDER notifications if at lease one was Displayed
+                foreach (Notification N in subList)
+                {
+                    if(N.Displayed == true)
+                    {
+                        N.Displayed = false;
+                        orderCpt++;
+                    }
+                }//end foreach
+
+                //Update the total counter and the counter of hidden ORDER notifications
+                hiddenCount += orderCpt;
+                orderNotifHiddenCount += orderCpt;
+
+            }//endif
+
+        }//endif
+
+    }//ToggleNotifications
+
+
+    public void ToggleAllNotifications()
+    {
+        if (hiddenCount == NS.Notifications.Count)
+        {
+            allNotifDisplayed = orderNotifDisplayed = customerNotifDisplayed = true;
+            hiddenCount = orderNotifHiddenCount = customerNotifHiddenCount = 0;
+        }
+        else
+        {
+            allNotifDisplayed = !allNotifDisplayed;
+        }
+
+        foreach (Notification N in NS.Notifications)
+        {
+            N.Displayed = allNotifDisplayed;
+            if (!N.Displayed)
+            {
+                switch (N.Type)
+                {
+                    case NotificationType.CustomerControl:
+                        customerNotifHiddenCount++;
+                        break;
+                    case NotificationType.Order:
+                        orderNotifHiddenCount++;
+                        break;
+                }
+                hiddenCount++;
+            }
+
+            StateHasChanged();
+
+        }//foreach
+
+    }//ToggleAllNotifications
+
+    public void ToggleOrderNotifications()
+    {
+        var subList = NS.Notifications.FindAll(n => n.Type == NotificationType.Order);
+
+
+        if (orderNotifHiddenCount == subList.Count)
+        {
+            orderNotifDisplayed = true;
+            orderNotifHiddenCount = 0;
+        }
+        else
+        {
+            orderNotifDisplayed = false;
+        }
+
+        foreach (Notification N in subList)
+        {
+            N.Displayed = orderNotifDisplayed;
+            if (!N.Displayed)
+            {
+                orderNotifHiddenCount++;
+                hiddenCount++;
+            }
+        }//foreach
+
+        if (allNotifDisplayed)
+        {
+            hiddenCount += orderNotifHiddenCount;
+        }
+
+
+        if (orderNotifHiddenCount == NS.Notifications.Count)
+        {
+            allNotifDisplayed = false;
+            hiddenCount = NS.Notifications.Count;
+        }
+
+    }//ToggleOrderNotification
+
+    public void ToggleCustomerNotifications()
+    {
+        var subList = NS.Notifications.FindAll(n => n.Type == NotificationType.CustomerControl);
+
+        if (customerNotifHiddenCount == subList.Count)
+        {
+            customerNotifDisplayed = true;
+            customerNotifHiddenCount = 0;
+        }
+        else
+        {
+            customerNotifDisplayed = false;
+            customerNotifHiddenCount = subList.Count;
+        }
+
+        foreach (Notification N in subList)
+        {
+            N.Displayed = customerNotifDisplayed;
+        }
+
+        if (customerNotifHiddenCount == NS.Notifications.Count)
+        {
+            allNotifDisplayed = false;
+        }
+    }//ToggleCustomerNotifications
+
+    public void HideItem(Notification N)
+    {
+        N.Displayed = false;
+        switch (N.Type)
+        {
+            case NotificationType.Order:
+                orderNotifHiddenCount++;
+                break;
+            case NotificationType.CustomerControl:
+                customerNotifHiddenCount++;
+                break;
+        }
+        hiddenCount++;
+    }
+
+    }
